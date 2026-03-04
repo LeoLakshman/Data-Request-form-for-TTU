@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Mail;
 using System.Web;
@@ -15,7 +15,9 @@ namespace YourNamespace
             if (!IsPostBack)
             {
                 txtDateSubmitted.Text = DateTime.Today.ToString("yyyy-MM-dd");
-                txtDateNeeded.Text = DateTime.Today.AddDays(14).ToString("yyyy-MM-dd");
+                DateTime minDate = DateTime.Today.AddDays(14);
+                txtDateNeeded.Text = minDate.ToString("yyyy-MM-dd");
+                txtDateNeeded.Attributes["min"] = minDate.ToString("yyyy-MM-dd");
             }
         }
 
@@ -47,8 +49,8 @@ namespace YourNamespace
                 ";
 
                 MailMessage mail = new MailMessage();
-                mail.From = new MailAddress("onyiiukaegbu@gmail.com"); // CHANGE to valid sender (e.g. irim@ttu.edu)
-                mail.To.Add("onyiiukaegbu@gmail.com");                 // CHANGE to real recipient (e.g. irim@ttu.edu)
+                mail.From = new MailAddress("lakshmanpukhraj@gmail.com"); // CHANGE to valid sender (e.g. irim@ttu.edu)
+                mail.To.Add("lakshmanpukhraj@gmail.com");                 // CHANGE to real recipient (e.g. irim@ttu.edu)
                 mail.Subject = "New Online Data Request: " + txtRequestTitle.Text;
                 mail.Body = body;
                 mail.IsBodyHtml = true;
@@ -126,8 +128,8 @@ namespace YourNamespace
                 smtp.EnableSsl = true;            // Required for Gmail
                 smtp.UseDefaultCredentials = false;
                 smtp.Credentials = new System.Net.NetworkCredential(
-                    "onyiiukaegbu@gmail.com",        // ← Your full Gmail address
-                    "vgdhaiyetnwuuusy"  // ← The App Password you generated (NO spaces!)
+                    "lakshmanpukhraj@gmail.com",        // ← Your full Gmail address
+                    "bjyvxadldkrhvgwr"  // ← The App Password you generated (NO spaces!)
                 );
 
                 smtp.Send(mail);
