@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Mail;
 using System.Web;
@@ -10,12 +10,24 @@ namespace YourNamespace
 {
     public partial class IRRequest : Page
     {
+        private string tempPath;
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
             {
                 txtDateSubmitted.Text = DateTime.Today.ToString("yyyy-MM-dd");
-                txtDateNeeded.Text = DateTime.Today.AddDays(14).ToString("yyyy-MM-dd");
+                DateTime minDate = DateTime.Today.AddDays(14);
+                txtDateNeeded.Text = minDate.ToString("yyyy-MM-dd");
+                txtDateNeeded.Attributes["min"] = minDate.ToString("yyyy-MM-dd");
+                // Show success message from previous submission (if any)
+                if (Session["SuccessMessage"] != null)
+                {
+                    lblMessage.Text = Session["SuccessMessage"].ToString();
+                    lblMessage.Visible = true;
+                    Session.Remove("SuccessMessage");  
+                    ClearForm();                       
+                }
             }
         }
 
@@ -31,69 +43,153 @@ namespace YourNamespace
                 // Build safe HTML email body
                 string safeDetails = HttpUtility.HtmlEncode(txtRequestDetails.Text).Replace("\n", "<br />");
 
+                string attachmentNote = fuAttachment.HasFile
+                    ? HttpUtility.HtmlEncode(fuAttachment.FileName)
+                    : "(none)";
+
                 string body = $@"
-                    <h3>New Data Request Submitted</h3>
-                    <p><strong>Requested By:</strong> {HttpUtility.HtmlEncode(txtRequestedBy.Text)}</p>
-                    <p><strong>College/Company:</strong> {HttpUtility.HtmlEncode(txtCollegeCompany.Text)}</p>
-                    <p><strong>Department:</strong> {HttpUtility.HtmlEncode(txtDepartment.Text)}</p>
-                    <p><strong>Phone:</strong> {HttpUtility.HtmlEncode(txtPhone.Text)}</p>
-                    <p><strong>Email:</strong> {HttpUtility.HtmlEncode(txtEmail.Text)}</p>
-                    <p><strong>Date Submitted:</strong> {txtDateSubmitted.Text}</p>
-                    <p><strong>Date Report Needed:</strong> {txtDateNeeded.Text}</p>
-                    <hr />
-                    <p><strong>Request Title:</strong> {HttpUtility.HtmlEncode(txtRequestTitle.Text)}</p>
-                    <p><strong>IR Contact:</strong> {HttpUtility.HtmlEncode(txtIRContact.Text)}</p>
-                    <p><strong>Request Details:</strong><br />{safeDetails}</p>
+                    <!DOCTYPE html>
+                        <html>
+                        <body style=""font-family: Arial, sans-serif; font-size: 14px; color: #000;"">
+
+                          <p style=""font-size: 20px; font-weight: bold; color: #CC0000;"">Online Data Request Form</p>
+                          <!-- DEMOGRAPHICS TABLE -->
+                          <table border=""1"" cellpadding=""8"" cellspacing=""0""
+                                 style=""border-collapse: collapse; width: 600px; border: 2px solid #000;"">
+
+                            <tr>
+                              <td colspan=""2""
+                                  style=""background-color: #000; color: #fff; font-weight: bold;
+                                          font-size: 14px; padding: 8px;"">
+                                DEMOGRAPHICS:
+                              </td>
+                            </tr>
+
+                            <tr>
+                              <td style=""width: 200px; font-weight: bold; border: 1px solid #000; padding: 8px;"">Requested By *:</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtRequestedBy.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">College/Company:</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtCollegeCompany.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">Department:</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtDepartment.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">Phone (xxx-xxx-xxxx):</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtPhone.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">Email *:</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtEmail.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">Date Submitted:*</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{txtDateSubmitted.Text}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">Date Report Needed:*</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{txtDateNeeded.Text}</td>
+                            </tr>
+
+                          </table>
+
+                          <br />
+
+                          <!-- REQUEST DETAILS TABLE -->
+                          <table border=""1"" cellpadding=""8"" cellspacing=""0""
+                                 style=""border-collapse: collapse; width: 600px; border: 2px solid #000;"">
+
+                            <tr>
+                              <td colspan=""2""
+                                  style=""background-color: #000; color: #fff; font-weight: bold;
+                                          font-size: 14px; padding: 8px;"">
+                                REQUEST DETAILS:
+                              </td>
+                            </tr>
+
+                            <tr>
+                              <td style=""width: 200px; font-weight: bold; border: 1px solid #000; padding: 8px;"">Request Title:*</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtRequestTitle.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">
+                                Have you contacted IR Staff regarding this request?
+                                If so, please type name of <strong>IR Contact:*</strong>
+                              </td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{HttpUtility.HtmlEncode(txtIRContact.Text)}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px;"">Attachments:</td>
+                              <td style=""border: 1px solid #000; padding: 8px;"">{attachmentNote}</td>
+                            </tr>
+                            <tr>
+                              <td style=""font-weight: bold; border: 1px solid #000; padding: 8px; vertical-align: top;"">
+                                Request Details *:<br />
+                                <span style=""font-weight: normal; font-style: italic;"">(Please provide detailed information for data needed.)</span>
+                              </td>
+                              <td style=""border: 1px solid #000; padding: 8px; vertical-align: top;"">{safeDetails}</td>
+                            </tr>
+
+                          </table>
+
+                        </body>
+                        </html>
                 ";
 
-                MailMessage mail = new MailMessage();
-                mail.From = new MailAddress("onyiiukaegbu@gmail.com"); // CHANGE to valid sender (e.g. irim@ttu.edu)
-                mail.To.Add("onyiiukaegbu@gmail.com");                 // CHANGE to real recipient (e.g. irim@ttu.edu)
-                mail.Subject = "New Online Data Request: " + txtRequestTitle.Text;
-                mail.Body = body;
-                mail.IsBodyHtml = true;
-
-                // Attachment handling
-                if (fuAttachment.HasFile)
+                using (MailMessage mail = new MailMessage())
                 {
-                    string ext = Path.GetExtension(fuAttachment.FileName).ToLowerInvariant();
-                    string[] allowed = { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".jpg", ".jpeg", ".png" };
+                    mail.From = new MailAddress("lakshmanpukhraj@gmail.com");
+                    mail.To.Add("lakshmanpukhraj@gmail.com");
+                    mail.Subject = "New Online Data Request: " + txtRequestTitle.Text;
+                    mail.Body = body;
+                    mail.IsBodyHtml = true;
 
-                    if (!allowed.Contains(ext) || fuAttachment.PostedFile.ContentLength > 10 * 1024 * 1024)
+                    if (fuAttachment.HasFile)
                     {
-                        lblError.Text = "Invalid file: only pdf, doc/docx, xls/xlsx, txt, jpg/jpeg, png allowed. Max 10 MB.";
-                        lblError.Visible = true;
-                        return;
+                        string ext = Path.GetExtension(fuAttachment.FileName).ToLowerInvariant();
+                        string[] allowed = { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".jpg", ".jpeg", ".png" };
+
+                        if (!allowed.Contains(ext) || fuAttachment.PostedFile.ContentLength > 10 * 1024 * 1024)
+                        {
+                            lblError.Text = "Invalid file: only pdf, doc/docx, xls/xlsx, txt, jpg/jpeg, png allowed. Max 10 MB.";
+                            lblError.Visible = true;
+                            return;
+                        }
+
+                        string safeName = Guid.NewGuid().ToString() + ext;
+                        tempPath = Path.Combine(Server.MapPath("~/App_Data/TempUploads/"), safeName);
+                        Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
+                        fuAttachment.SaveAs(tempPath);
+
+                        Attachment attachment = new Attachment(tempPath);
+                        attachment.Name = fuAttachment.FileName;
+                        mail.Attachments.Add(attachment);
                     }
 
-                    string safeName = Guid.NewGuid().ToString() + ext;
-                    string tempPath = Path.Combine(Server.MapPath("~/App_Data/TempUploads/"), safeName);
+                    SendEmail(mail);
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(tempPath));
-                    fuAttachment.SaveAs(tempPath);
+                    Session["SuccessMessage"] = "Your request has been submitted successfully. Thank you!";  // temporary storage
+                    Response.Redirect(Request.RawUrl);   // or Response.Redirect("~/IRRequest.aspx");  // redirect to same page
+                }
 
+                // Cleanup — now tempPath is in scope
+                if (tempPath != null && File.Exists(tempPath))
+                {
                     try
                     {
-                        Attachment attachment = new Attachment(tempPath);
-                        attachment.Name = fuAttachment.FileName; // show original name
-                        mail.Attachments.Add(attachment);
-
-                        SendEmail(mail);
+                        File.Delete(tempPath);
                     }
-                    finally
+                    catch (Exception)
                     {
-                        if (File.Exists(tempPath)) File.Delete(tempPath);
+                        // Optional: log the error silently (don't show to user)
+                        // You can write to a log file, or just swallow it
+                        // Example:
+                        // System.Diagnostics.Debug.WriteLine("Could not delete temp file: " + deleteEx.Message);
                     }
                 }
-                else
-                {
-                    SendEmail(mail);
-                }
-
-                lblMessage.Text = "Your request has been submitted successfully. Thank you!";
-                lblMessage.Visible = true;
-
-                ClearForm();
             }
             catch (Exception ex)
             {
@@ -126,8 +222,8 @@ namespace YourNamespace
                 smtp.EnableSsl = true;            // Required for Gmail
                 smtp.UseDefaultCredentials = false;
                 smtp.Credentials = new System.Net.NetworkCredential(
-                    "onyiiukaegbu@gmail.com",        // ← Your full Gmail address
-                    "vgdhaiyetnwuuusy"  // ← The App Password you generated (NO spaces!)
+                    "lakshmanpukhraj@gmail.com",        // ← Your full Gmail address
+                    "bjyvxadldkrhvgwr"  // ← The App Password you generated (NO spaces!)
                 );
 
                 smtp.Send(mail);
