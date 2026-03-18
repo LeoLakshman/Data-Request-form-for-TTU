@@ -1,7 +1,7 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="IRRequest.aspx.cs" Inherits="YourNamespace.IRRequest" %>
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="IRRequest.aspx.cs" Inherits="YourNamespace.IRRequest" %>
 
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">  
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head runat="server">
     <title>Online Data Request Form - Institutional Research</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,6 +26,20 @@
         .message { color: green; font-weight: bold; margin: 20px 0; padding: 10px; background: #e0ffe0; border: 1px solid green; border-radius: 4px; }
         .error-summary { color: #cc0000; font-weight: bold; margin: 20px 0; padding: 10px; background: #ffe0e0; border: 1px solid red; border-radius: 4px; }
         .validators { color: #cc0000; font-size: 0.9em; }
+        
+        html, body {
+        overflow-x: hidden;
+       /* max-width: 100vw;      prevents body from exceeding viewport */
+        box-sizing: border-box;
+        }
+
+        *, *::before, *::after {
+         box-sizing: border-box;   /* makes padding/margin not cause overflow */
+        }
+        table {
+        width: 100% !important;
+        max-width: 100% !important;
+        }
     </style>
 </head>
 <body>
@@ -61,9 +75,17 @@
             <tr>
                 <td class="label">Phone (xxx-xxx-xxxx):</td>
                 <td>
-                    <asp:TextBox ID="txtPhone" runat="server" placeholder="xxx-xxx-xxxx"></asp:TextBox>
-                    <asp:RegularExpressionValidator ID="regPhone" runat="server" ControlToValidate="txtPhone" 
-                        ValidationExpression="^\d{3}-\d{3}-\d{4}$" ErrorMessage="Phone must be in xxx-xxx-xxxx format (10 digits)." CssClass="validators" Display="Dynamic" />
+                <asp:TextBox ID="txtPhone" runat="server" 
+                    placeholder="(123) 456-7890"
+                    oninput="fmt(this)"
+                    MaxLength="14">
+                    </asp:TextBox>                    
+                    <asp:RegularExpressionValidator ID="regPhone" runat="server" 
+                    ControlToValidate="txtPhone"
+                    ValidationExpression="^\(\d{3}\)\s\d{3}-\d{4}$"
+                    ErrorMessage="Phone must be in (xxx) xxx-xxxx format (exactly 10 digits)."
+                    CssClass="validators" 
+                    Display="Dynamic" />
                 </td>
             </tr>
             <tr>
@@ -88,7 +110,7 @@
                     <asp:TextBox ID="txtDateNeeded" runat="server" TextMode="Date"></asp:TextBox>
                     <asp:RequiredFieldValidator ID="reqDateNeeded" runat="server" ControlToValidate="txtDateNeeded" ErrorMessage="Date Report Needed is required." CssClass="validators" Display="Dynamic" />
                     <asp:CompareValidator ID="cmpDateNeeded" runat="server" ControlToValidate="txtDateNeeded" ControlToCompare="txtDateSubmitted" 
-                        Operator="GreaterThanEqual" Type="Date" ErrorMessage="Date Needed must be today or later." CssClass="validators" Display="Dynamic" />
+                        Operator="GreaterThanEqual" Type="Date" ErrorMessage="Date Needed must be at least 14 days from today." CssClass="validators" Display="Dynamic" />
                 </td>
             </tr>
         </table>
@@ -135,7 +157,14 @@
             For additional information, contact us at <a href="mailto:IRIM@ttu.edu">IRIM@ttu.edu</a> or (806) 742-2166.
         </p>
     </form>
+<!-- Real-time US Phone Formatting: (123) 456-7890 -->
+<script type="text/javascript">
+    function fmt(el) {
+        let d = el.value.replace(/\D/g, '').slice(0, 10);
+        el.value = d.length < 1 ? '' :
+            '(' + d.slice(0, 3) + (d.length > 3 ? ') ' + d.slice(3, 6) : '') +
+            (d.length > 6 ? '-' + d.slice(6) : '');
+    }
+</script>
 </body>
-
 </html>
-
